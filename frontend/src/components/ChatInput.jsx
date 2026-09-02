@@ -12,7 +12,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendMessage } from "../features/sendMessage";
 import { useDispatch, useSelector } from "react-redux";
 import {
