@@ -1,0 +1,85 @@
+name: cortex ai deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Gateway
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/gateway/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-gateway:latest
+
+      - name: Build and push Auth
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/services/auth/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-auth:latest
+
+      - name: Build and push Chat
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/services/chat/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-chat:latest
+
+      - name: Build and push Billing
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/services/billing/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-billing:latest
+
+      - name: Build and push Agent
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/services/agent/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-agent:latest
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cortex-frontend:latest
