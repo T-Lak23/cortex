@@ -1,0 +1,79 @@
+import { checkAgentLimit } from "../config/agentLimit.js";
+import { getModel } from "../config/llmModels.js";
+import { deductCredits } from "../utils/deductCredits.js";
+import { generatePpt } from "../utils/generatePpt.js";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
+
+export const pptAgent = async (state) => {
+  try {
+    await checkAgentLimit(state.userId, "ppt");
+
+    const llm = await getModel("ppt");
+    const prompt = `
+        You are a professional presentation designer.
+
+        Return ONLY valid JSON.
+
+        Format:
+
+        {
+        "title":"",
+        "subtitle":"",
+        "slides":[
+        {
+        "title":"",
+        "points":[
+        "",
+        "",
+        "",
+        ""
+        ]
+        }
+        ]
+        }
+
+        Rules:
+        
+        - Generate exactly 6 content slides.
+        - Each slide should have 4-6 concise bullet points.
+        - No markdown.
+        - No explanation.
+        - No code block.
+        - Return ONLY JSON.
+
+        Topic:
+        ${state.prompt}
+        `;
+
+    const res = await llm.invoke(prompt);
+    const data = JSON.parse(res.content);
+    await deductCredits(state.userId, "ppt");
+
+    const ppt = await generatePpt(data);
+    const buffer = await ppt.write({
+      outputType: "nodebuffer",
+    });
+
+    const downloadUrl = await uploadToCloudinary(
+      buffer,
+      "raw",
+      `cortexai-${Date.now()}.pptx`,
+    );
+
+    return {
+      ...state,
+      aiResponse: `# Presentation Generated
+
+**${data.title}**
+
+[Download PPT](${downloadUrl})`,
+    };
+  } catch (error) {
+    console.log(error);
+
+    return {
+      ...state,
+      aiResponse: "Failed to generate PPT",
+    };
+  }
+};
